@@ -1,0 +1,13 @@
+GRAPHQL
+
+in plan:
+    :"dynamic": longbooks
+    :"dynamic": SSEbooks
+    :"dynamic": websocket<channel>books
+    paid/readed books
+    :"dynamic": longbooks<channel>chat
+    :"dynamic": websocket<channel>chat
+
+
+ideas:
+    could i add reids to cache the all model query or it already cached??
