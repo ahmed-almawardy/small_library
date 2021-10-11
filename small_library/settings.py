@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-s8687%wp5=o4@v0-*_=lrb=83u!1btb!*1&4n1=nl*vp6dbe8g
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['https://anem-small-library.herokuapp.com/', 'anem-small-library.herokuapp.com']
 
 
 # Application definition
