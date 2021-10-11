@@ -1,0 +1,21 @@
+version: "3"
+services:
+    app:
+        build: .
+        ports:
+            -  "8000:8000"
+        volumes:
+            -  ./:/vol/web/app
+        depends_on:
+            -  redis
+    redis:
+        image: redis
+        ports:
+            - "6379:6379"
+    celey:
+        build: .
+        command: celery -A  small_library worker -l INFO
+        volumes:
+            -  ./:/vol/web/app
+        depends_on: 
+            -  redis
