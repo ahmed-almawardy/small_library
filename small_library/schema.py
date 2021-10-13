@@ -9,7 +9,7 @@ from django.core import validators
 from django.core.cache import cache
 
 from core.models import (Author, Book, Reader)
-from core.validators import (name_no_numbers_symbols, phone_with_plus)
+from core.validators import (name_no_numbers_symbols, phone_with_plus , ValidatePersonSubClass)
 from core.serializers import ReaderWriteSerializer
 
 class BookObject(graphene_django.DjangoObjectType):
@@ -109,7 +109,7 @@ class Queries(graphene.ObjectType):
 
     def resolve_reader_get(self, info, pk):
         '''
-            Returns  book object
+            Returns book object
         '''
         return Queries._find_model_object(Reader, pk)
 
@@ -146,6 +146,7 @@ class AuthorUpdate(graphene.Mutation):
     author = graphene.Field(AuthorObject())
     ok = graphene.Boolean()
   
+    ##TODO::User ValidatePersonSubClass 
     def mutate(parent, info, pk, name=None, email=None, phone=None):
         author = Author.objects.filter(pk=pk)
         if name:
@@ -155,13 +156,13 @@ class AuthorUpdate(graphene.Mutation):
             validators.validate_email(email)
             author.email = email
         if phone:
+
             phone_with_plus(phone)
             author.phone = phone
-        if books:
-            author.books.set(books)
 
         author = author.first()
         return AuthorUpdate(author=author, ok=True)
+
 
 
 class AuthorBooksDelete(graphene.Mutation):
@@ -185,23 +186,61 @@ class AuthorBooksDelete(graphene.Mutation):
         return AuthorBooksDelete(ok=False)
 
 
-class ReaderMutations(SerializerMutation):
-    class Meta:
-        serializer_class = ReaderWriteSerializer
-        model_operations = 'create', 'update'
-        lookup_field = 'id'
+class ReaderCreateInput(graphene.InputObjectType):
+    name =  graphene.String(required=True)
+    email = graphene.String(required=True)
+    phone = graphene.String(required=True)
+    books = graphene.List(graphene.Int)
+
+    
+class ReaderCreate(graphene.Mutation):
+    reader = graphene.Field(ReaderObject)
+    ok = graphene.Boolean()
+    
+  
+    class Arguments:
+        reader = ReaderCreateInput(required=True)
+    
+    
+    def mutate(self, info , reader):
+        '''
+            Creates a reader object
+        '''
+        ValidatePersonSubClass.validate(fields=reader)
+        reader = Reader.objects.create(
+            **reader
+        )
+        return ReaderCreate(reader=reader, ok=True)
 
 
+class ReaderUpdateInput(graphene.InputObjectType):
+    pk = graphene.ID(required= True)
+    name =  graphene.String()
+    email = graphene.String()
+    phone = graphene.String()
+    books = graphene.List(graphene.Int)
 
 
+class ReaderUpdate(graphene.Mutation):
+    ok = graphene.Boolean()
+    reader = graphene.Field(ReaderObject)
+
+    class Arguments:
+        reader = ReaderUpdateInput(required=True)
+
+    
+    def mutate(self, info, reader):
+        reader_model = get_object_or_404(Reader, pk=reader['pk'])
+        reader_model.validate_update(fields = reader)
+        return ReaderUpdate(ok=True, reader=reader_model)
 
 class Mutations(graphene.ObjectType):
     author_create = AuthorCreate.Field()
     author_update = AuthorUpdate.Field()
     author_books_delete = AuthorBooksDelete.Field()
 
-    reader_create = ReaderMutations.Field()
-    reader_update = ReaderMutations.Field()
+    reader_create = ReaderCreate.Field()
+    reader_update = ReaderUpdate.Field()
     # author_books_delete = AuthorBooksDelete.Field()
 
     # author_create = AuthorCreate.Field()

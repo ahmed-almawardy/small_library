@@ -2,10 +2,13 @@ from secrets import token_hex
 
 from django.db import models
 from django.db.models.aggregates import Count
+from django.shortcuts import get_list_or_404
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import localtime
 from django.urls.base import reverse_lazy
 from django.db.models import Count
+
+from core.validators import ValidatePersonSubClass
 
 
 class CommonPersonFields(models.Model):
@@ -36,6 +39,31 @@ class CommonPersonFields(models.Model):
     
     def _normalize_str(self, str_value):
         return str_value.lower().strip()
+    
+    #TODO::Reactor
+    def validate_update(self, fields):
+        ValidatePersonSubClass.validate(fields)
+        model_fields = self._copy_model_fields()
+        self._update_books(fields)
+        self._update_local_fields(fields, model_fields)
+        self.save()
+
+    def _update_local_fields(self, fields, model_fields):
+        for field in model_fields:
+            value = fields.get(field, getattr(self, field   ))
+            setattr(self, field, value)
+
+    def _update_books(self, fields):
+        if 'books' in fields and fields['books']:
+            self.books.set(
+                    get_list_or_404(Book, pk__in=fields['books'])    
+        )
+
+    def _copy_model_fields(self):
+        model_fields = self._meta.get_fields()
+        model_fields = [f.name for f in model_fields if not (f.name == 'books' or f.name == 'id')]
+        return model_fields
+
 
     @property
     def books_no(self):
