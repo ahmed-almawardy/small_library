@@ -1,4 +1,5 @@
 import graphene
+from graphene.types.scalars import Int
 import graphene_django
 from graphene_django.rest_framework.mutation import SerializerMutation
 
@@ -10,7 +11,7 @@ from django.core.cache import cache
 
 from core.models import (Author, Book, Reader)
 from core.validators import (name_no_numbers_symbols, phone_with_plus , ValidatePersonSubClass)
-from core.serializers import ReaderWriteSerializer
+from core.serializers import BookWriteSerializer, ReaderWriteSerializer
 
 class BookObject(graphene_django.DjangoObjectType):
     '''
@@ -22,6 +23,7 @@ class BookObject(graphene_django.DjangoObjectType):
             'id',
             'title',
             'readers',
+            # 'serialer_no',
             'author',
         )
 
@@ -234,6 +236,35 @@ class ReaderUpdate(graphene.Mutation):
         reader_model.validate_update(fields = reader)
         return ReaderUpdate(ok=True, reader=reader_model)
 
+
+class ReaderBooksDelete(graphene.Mutation):
+    books = graphene.List(graphene.Int)
+    class Arguments:
+        delete_books = graphene.List(graphene.Int)
+    
+    def mutate(self, info, pks):
+        books = Book.objects.filter(pk__in=pks)
+        books_ids =books.values_list('id')
+        books.delete()
+        return  ReaderBooksDelete(books=books_ids)
+
+
+class BookCreateInput(graphene.InputObjectType):
+    title =  graphene.NonNull(graphene.String) 
+    author = graphene.NonNull(graphene.ID) 
+
+class BookCreate(graphene.Mutation):
+    book = graphene.Field(BookObject)
+    ok = graphene.Boolean()
+    class Arguments:
+        book = BookCreateInput(required= True)
+
+
+    def mutate(self, info, book):
+        book = Book.objects.create(**book)
+        return BookCreate(ok=True   ) 
+
+
 class Mutations(graphene.ObjectType):
     author_create = AuthorCreate.Field()
     author_update = AuthorUpdate.Field()
@@ -241,11 +272,8 @@ class Mutations(graphene.ObjectType):
 
     reader_create = ReaderCreate.Field()
     reader_update = ReaderUpdate.Field()
-    # author_books_delete = AuthorBooksDelete.Field()
+    reader_books_delete = ReaderBooksDelete.Field()
 
-    # author_create = AuthorCreate.Field()
-    # author_update = AuthorUpdate.Field()
-
-
+    book_create = BookCreate.Field()
 
 schema = graphene.Schema(query=Queries, mutation=Mutations,auto_camelcase=False)

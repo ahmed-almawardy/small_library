@@ -87,8 +87,8 @@ class Validate(ValidateContract):
             Generate a validator method name
         '''
         return f"_validate_{field}"
-
-
+   
+    
 class ValidatePersonSubClass(Validate):
     '''
         Client for excuting a validation and or extra logic
